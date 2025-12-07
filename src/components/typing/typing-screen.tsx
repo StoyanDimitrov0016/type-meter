@@ -4,12 +4,13 @@ import { useCallback, useState } from "react";
 import Timer from "./timer";
 import { getWordlist } from "@/lib/wordlist";
 import { cn } from "@/lib/utils";
+import StatisticsPanel from "./statistics-panel";
 
-type CharState = "correct" | "incorrect" | "upcoming";
-type Char = { text: string; state: CharState };
+export type CharState = "correct" | "incorrect" | "upcoming";
+export type Char = { text: string; state: CharState };
 
-type GameState = "idle" | "running" | "finished";
-type GameEvent = "start" | "time-up" | "reset";
+export type GameState = "idle" | "running" | "finished";
+export type GameEvent = "start" | "time-up" | "reset";
 
 function nextGameState(state: GameState, event: GameEvent): GameState {
   switch (state) {
@@ -48,13 +49,14 @@ interface TypingScreenProps {
 export default function TypingScreen({ initialSeconds, initialWordlist }: TypingScreenProps) {
   const [sequence, setSequence] = useState(() => buildSequence(initialWordlist));
   const [gameState, setGameState] = useState<GameState>("idle");
-
+  const [runId, setRunId] = useState(0);
   const [input, setInput] = useState("");
 
   const onReset = () => {
     setSequence(buildSequence(getWordlist(initialWordlist.length)));
     setGameState((prev) => nextGameState(prev, "reset"));
     setInput("");
+    setRunId((prev) => prev + 1);
   };
 
   const onFinish = useCallback(() => {
@@ -67,7 +69,12 @@ export default function TypingScreen({ initialSeconds, initialWordlist }: Typing
   return (
     <section className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <Timer initialSeconds={initialSeconds} onFinish={onFinish} isRunning={isRunning} />
+        <Timer
+          key={runId}
+          initialSeconds={initialSeconds}
+          onFinish={onFinish}
+          isRunning={isRunning}
+        />
         {isFinished && (
           <button
             onClick={onReset}
@@ -124,6 +131,9 @@ export default function TypingScreen({ initialSeconds, initialWordlist }: Typing
           autoComplete="off"
         ></textarea>
       </form>
+      {gameState === "finished" && (
+        <StatisticsPanel sequence={sequence} input={input} seconds={initialSeconds} />
+      )}
     </section>
   );
 }
