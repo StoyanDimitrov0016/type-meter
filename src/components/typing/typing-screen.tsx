@@ -148,6 +148,11 @@ export default function TypingScreen({ initialSeconds, initialWordlist }: Typing
           disabled={isFinished}
           rows={5}
           autoComplete="off"
+          spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="off"
+          onPaste={(e) => e.preventDefault()}
+          onDrop={(e) => e.preventDefault()}
         />
       </form>
 
