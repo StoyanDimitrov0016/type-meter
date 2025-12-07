@@ -116,6 +116,9 @@ export default function TypingScreen({ initialSeconds, initialWordlist }: Typing
       </p>
 
       <form>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          When you’re ready, start typing the text above.
+        </span>
         <Textarea
           className="font-mono"
           value={input}
