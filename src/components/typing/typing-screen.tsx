@@ -5,6 +5,8 @@ import Timer from "./timer";
 import { getWordlist } from "@/lib/wordlist";
 import { cn } from "@/lib/utils";
 import StatisticsPanel from "./statistics-panel";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 export type CharState = "correct" | "incorrect" | "upcoming";
 export type Char = { text: string; state: CharState };
@@ -76,12 +78,9 @@ export default function TypingScreen({ initialSeconds, initialWordlist }: Typing
           isRunning={isRunning}
         />
         {isFinished && (
-          <button
-            onClick={onReset}
-            className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-zinc-50 hover:bg-zinc-800 active:bg-zinc-950"
-          >
+          <Button onClick={onReset} size="sm" variant="default">
             Next challenge
-          </button>
+          </Button>
         )}
       </div>
 
@@ -97,8 +96,8 @@ export default function TypingScreen({ initialSeconds, initialWordlist }: Typing
       </p>
 
       <form>
-        <textarea
-          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-zinc-900 outline-none focus:border-zinc-500 focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+        <Textarea
+          className="font-mono"
           value={input}
           onChange={(event) => {
             const value = event.target.value;
@@ -129,7 +128,7 @@ export default function TypingScreen({ initialSeconds, initialWordlist }: Typing
           disabled={isFinished}
           rows={5}
           autoComplete="off"
-        ></textarea>
+        />
       </form>
       {gameState === "finished" && (
         <StatisticsPanel sequence={sequence} input={input} seconds={initialSeconds} />
