@@ -5,21 +5,30 @@ import { useState, useRef, useEffect } from "react";
 interface TimerProps {
   initialSeconds: number;
   onFinish: () => void;
+  isRunning: boolean;
 }
 
-export default function Timer({ initialSeconds, onFinish }: TimerProps) {
+export default function Timer({ initialSeconds, onFinish, isRunning }: TimerProps) {
   const [remainingSeconds, setRemainingSeconds] = useState(initialSeconds);
-
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    if (!isRunning) {
+      if (intervalRef.current !== null) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
+
     intervalRef.current = setInterval(() => {
       setRemainingSeconds((prev) => {
         if (prev <= 1) {
+          // stop at 0
           if (intervalRef.current !== null) {
             clearInterval(intervalRef.current);
+            intervalRef.current = null;
           }
-          onFinish();
           return 0;
         }
         return prev - 1;
@@ -29,9 +38,17 @@ export default function Timer({ initialSeconds, onFinish }: TimerProps) {
     return () => {
       if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
-  }, [onFinish]);
+  }, [isRunning]);
+
+  useEffect(() => {
+    if (!isRunning) return;
+    if (remainingSeconds === 0) {
+      onFinish();
+    }
+  }, [remainingSeconds, isRunning, onFinish]);
 
   const suffix = remainingSeconds === 1 ? "second" : "seconds";
 
