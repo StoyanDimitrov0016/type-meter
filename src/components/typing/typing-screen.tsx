@@ -7,12 +7,16 @@ import { cn } from "@/lib/utils";
 import StatisticsPanel from "./statistics-panel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { DurationSelector } from "../duration-selector";
 
 export type CharState = "correct" | "incorrect" | "upcoming";
 export type Char = { text: string; state: CharState };
 
 export type GameState = "idle" | "running" | "finished";
 export type GameEvent = "start" | "time-up" | "reset";
+
+export const DURATIONS = [15, 30, 60, 120] as const;
+export type Duration = (typeof DURATIONS)[number];
 
 function nextGameState(state: GameState, event: GameEvent): GameState {
   switch (state) {
@@ -53,6 +57,7 @@ export default function TypingScreen({ initialSeconds, initialWordlist }: Typing
   const [gameState, setGameState] = useState<GameState>("idle");
   const [runId, setRunId] = useState(0);
   const [input, setInput] = useState("");
+  const [duration, setDuration] = useState<Duration>(initialSeconds as Duration);
 
   const onReset = () => {
     setSequence(buildSequence(getWordlist(initialWordlist.length)));
@@ -70,18 +75,33 @@ export default function TypingScreen({ initialSeconds, initialWordlist }: Typing
 
   return (
     <section className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <Timer
-          key={runId}
-          initialSeconds={initialSeconds}
-          onFinish={onFinish}
-          isRunning={isRunning}
-        />
-        {isFinished && (
-          <Button onClick={onReset} size="sm" variant="default">
-            Next challenge
-          </Button>
-        )}
+      <div className="flex items-center justify-between gap-4">
+        <Timer key={runId} initialSeconds={duration} onFinish={onFinish} isRunning={isRunning} />
+
+        <div className="flex items-center gap-3">
+          <DurationSelector
+            options={DURATIONS}
+            value={duration}
+            onChange={(next) => {
+              // Decide: changing time resets the test
+              setDuration(next as Duration);
+              setSequence(buildSequence(getWordlist(initialWordlist.length)));
+              setInput("");
+              setGameState("idle");
+              setRunId((prev) => prev + 1); // restart timer with new duration
+            }}
+            disabled={isRunning} // optional: don’t allow change mid-run
+          />
+
+          {isFinished && (
+            <Button
+              onClick={onReset}
+              className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-zinc-50 hover:bg-zinc-800 active:bg-zinc-950"
+            >
+              Next challenge
+            </Button>
+          )}
+        </div>
       </div>
 
       <p className="mb-4 rounded-lg bg-zinc-100 px-4 py-3 text-lg leading-relaxed font-mono text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 whitespace-pre-wrap wrap-break-word">
@@ -130,8 +150,9 @@ export default function TypingScreen({ initialSeconds, initialWordlist }: Typing
           autoComplete="off"
         />
       </form>
+
       {gameState === "finished" && (
-        <StatisticsPanel sequence={sequence} input={input} seconds={initialSeconds} />
+        <StatisticsPanel sequence={sequence} input={input} seconds={duration} />
       )}
     </section>
   );
