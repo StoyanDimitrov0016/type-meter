@@ -1,4 +1,5 @@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Timer as TimerIcon } from "lucide-react";
 
 interface DurationSelectorProps {
   options: readonly number[];
@@ -9,8 +10,12 @@ interface DurationSelectorProps {
 
 export function DurationSelector({ options, value, onChange, disabled }: DurationSelectorProps) {
   return (
-    <div className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
-      <span className="mr-1 hidden sm:inline">Time:</span>
+    <div className="flex items-center gap-3 text-xs text-zinc-600 dark:text-zinc-300">
+      <div className="flex items-center gap-1">
+        <TimerIcon className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" aria-hidden="true" />
+        <span className="hidden sm:inline font-medium tracking-wide">Time</span>
+      </div>
+
       <ToggleGroup
         type="single"
         value={String(value)}
