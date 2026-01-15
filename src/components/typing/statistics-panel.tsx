@@ -1,7 +1,7 @@
-import { Char } from "./typing-screen";
+import { Character } from "@/character.types";
 
 interface StatisticsPanelProps {
-  sequence: Char[];
+  sequence: Character[];
   input: string;
   seconds: number;
 }
