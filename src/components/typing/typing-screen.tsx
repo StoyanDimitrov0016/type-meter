@@ -3,20 +3,20 @@
 import { useCallback, useState } from "react";
 import Timer from "./timer";
 import { getWordlist } from "@/lib/wordlist";
-import { cn } from "@/lib/utils";
 import StatisticsPanel from "./statistics-panel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { DurationSelector } from "../duration-selector";
-
-export type CharState = "correct" | "incorrect" | "upcoming";
-export type Char = { text: string; state: CharState };
+import PromptView from "./prompt-view";
+import { Character } from "@/character.types";
 
 export type GameState = "idle" | "running" | "finished";
 export type GameEvent = "start" | "time-up" | "reset";
 
 export const DURATIONS = [15, 30, 60, 120] as const;
 export type Duration = (typeof DURATIONS)[number];
+
+const WORDS_BUFFER = 5;
 
 function nextGameState(state: GameState, event: GameEvent): GameState {
   switch (state) {
@@ -34,17 +34,31 @@ function nextGameState(state: GameState, event: GameEvent): GameState {
       return state;
   }
 }
-const CHAR_STYLES = {
-  correct: "text-emerald-500",
-  incorrect: "text-red-500",
-  upcoming: "text-zinc-500",
-} as const satisfies Record<CharState, string>;
 
-function buildSequence(wordlist: string[]): Char[] {
+function buildSequence(wordlist: string[]): Character[] {
   return wordlist
     .join(" ")
     .split("")
     .map((letter) => ({ text: letter, state: "upcoming" }));
+}
+
+// TODO: can validate from the cursor position until the end
+// I can't validate only the actual cursor because the user can press backspace and I have to set the deleted char to upcoming
+function validateSequence(sequence: Character[], input: string) {
+  for (let i = 0; i < sequence.length; i++) {
+    if (i >= input.length) {
+      sequence[i].state = "upcoming";
+      continue;
+    }
+
+    if (sequence[i].text === input[i]) {
+      sequence[i].state = "correct";
+    } else {
+      sequence[i].state = "incorrect";
+    }
+  }
+
+  return sequence;
 }
 
 interface TypingScreenProps {
@@ -53,6 +67,7 @@ interface TypingScreenProps {
 }
 
 export default function TypingScreen({ initialSeconds, initialWordlist }: TypingScreenProps) {
+  const [wordlist, setWordlist] = useState(initialWordlist);
   const [sequence, setSequence] = useState(() => buildSequence(initialWordlist));
   const [gameState, setGameState] = useState<GameState>("idle");
   const [runId, setRunId] = useState(0);
@@ -60,7 +75,9 @@ export default function TypingScreen({ initialSeconds, initialWordlist }: Typing
   const [duration, setDuration] = useState<Duration>(initialSeconds as Duration);
 
   const onReset = () => {
-    setSequence(buildSequence(getWordlist(initialWordlist.length)));
+    const newWordlist = getWordlist(initialWordlist.length);
+    setWordlist(newWordlist);
+    setSequence(buildSequence(newWordlist));
     setGameState((prev) => nextGameState(prev, "reset"));
     setInput("");
     setRunId((prev) => prev + 1);
@@ -85,7 +102,11 @@ export default function TypingScreen({ initialSeconds, initialWordlist }: Typing
             onChange={(next) => {
               // Decide: changing time resets the test
               setDuration(next as Duration);
-              setSequence(buildSequence(getWordlist(initialWordlist.length)));
+
+              const newWordlist = getWordlist(initialWordlist.length);
+              setWordlist(newWordlist);
+              setSequence(buildSequence(newWordlist));
+
               setInput("");
               setGameState("idle");
               setRunId((prev) => prev + 1); // restart timer with new duration
@@ -104,48 +125,40 @@ export default function TypingScreen({ initialSeconds, initialWordlist }: Typing
         </div>
       </div>
 
-      <p className="mb-4 rounded-lg bg-zinc-100 px-4 py-3 text-lg leading-relaxed font-mono text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 whitespace-pre-wrap wrap-break-word">
-        {sequence.map(({ text, state }, index) => (
-          <span
-            key={index}
-            className={cn(CHAR_STYLES[state], index === input.length && "underline")}
-          >
-            {text}
-          </span>
-        ))}
-      </p>
+      <PromptView chars={sequence} cursor={input.length} />
 
       <form>
         <span className="text-xs text-zinc-500 dark:text-zinc-400">
-          When you’re ready, start typing the text above.
+          When you're ready, start typing the text above.
         </span>
         <Textarea
           className="font-mono"
           value={input}
           onChange={(event) => {
-            const value = event.target.value;
+            const input = event.target.value;
+            const cursor = input.length;
 
-            setInput(value);
+            const validated = validateSequence(sequence, input);
+
+            if (cursor === validated.length) {
+              // I am sliding the sequence instead of the wordlist and derive the sequence from it
+              // Otherwise I don't know where the word ends and I can transfer half a word ot the next version
+
+              // Fix statistics
+              const nextWordlist = getWordlist(WORDS_BUFFER);
+              const updatedWordlist = [...wordlist.slice(wordlist.length), ...nextWordlist];
+              const nextSequence = buildSequence(updatedWordlist);
+
+              setWordlist(updatedWordlist);
+              setSequence(nextSequence);
+              setInput("");
+            } else {
+              setSequence([...validated]);
+              setInput(input);
+            }
 
             setGameState((prev) =>
-              prev === "idle" && value.length > 0 ? nextGameState(prev, "start") : prev
-            );
-
-            setSequence((prev) =>
-              prev.map((char, index) => {
-                const current = value[index];
-                let state: CharState;
-
-                if (current === char.text) {
-                  state = "correct";
-                } else if (index < value.length) {
-                  state = "incorrect";
-                } else {
-                  state = "upcoming";
-                }
-
-                return { ...char, state };
-              })
+              prev === "idle" && input.length > 0 ? nextGameState(prev, "start") : prev
             );
           }}
           disabled={isFinished}
