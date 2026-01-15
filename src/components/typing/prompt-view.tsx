@@ -1,14 +1,14 @@
-import { Char, CharState } from "@/char-types";
+import { Character, CharacterState } from "@/character.types";
 import { cn } from "@/lib/utils";
 
 const CHAR_STYLES = {
   correct: "text-emerald-500",
   incorrect: "text-red-500",
   upcoming: "text-zinc-500",
-} as const satisfies Record<CharState, string>;
+} as const satisfies Record<CharacterState, string>;
 
 interface PromptViewProps {
-  chars: Char[];
+  chars: Character[];
   cursor: number;
 }
 
